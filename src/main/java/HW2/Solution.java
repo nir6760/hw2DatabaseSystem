@@ -17,6 +17,8 @@ import static HW2.business.ReturnValue.*;
 
 public class Solution {
     /************************************************************/
+    /*****************************************************************************************************************/
+    /**Auxiliary defines**/
     static final int NOT_NULL_VIOLATION = PostgreSQLErrorCodes.NOT_NULL_VIOLATION.getValue();
     static final int FOREIGN_KEY_VIOLATION = PostgreSQLErrorCodes.FOREIGN_KEY_VIOLATION.getValue();
     static final int UNIQUE_VIOLATION = PostgreSQLErrorCodes.UNIQUE_VIOLATION.getValue();
@@ -25,16 +27,46 @@ public class Solution {
 
 
 
-    static final String T_STUDENT = "public.\"Student\"";
-    static final String T_TEST = "public.\"Test\"";
-    static final String T_SUPERVISOR = "public.\"Supervisor\"";
-    static final String T_TAKE_TEST = "public.\"TakeTest\"";
-    static final String T_OVERSEE = "public.\"Oversee\"";
+    static final String T_STUDENT = "Student";
+    static final String T_TEST = "Test";
+    static final String T_SUPERVISOR = "Supervisor";
+    static final String T_TAKE_TEST = "TakeTest";
+    static final String T_OVERSEE = "Oversee";
 
     static final String[] tables = {T_STUDENT, T_TEST, T_SUPERVISOR, T_TAKE_TEST, T_OVERSEE};
     /************************************************************/
 
-    private static PreparedStatement createTable(String table, Connection connection){ //create table helper
+    /*****************************************************************************************************************/
+    /**Auxiliary functions**/
+    //auxiliary close connection function - connection epilog
+    private static ReturnValue connectionEpilog(Connection con, PreparedStatement pstmt) {
+        try {
+            pstmt.close();
+        } catch (SQLException e) {
+            return ERROR;
+        }
+        try {
+            con.close();
+        } catch (SQLException e) {
+            return ERROR;
+        }
+        return OK;
+    }
+    // auxiliary which return the right type of error after Insert query
+    private static ReturnValue typeOfErrorForInsert(int type_error) {
+        if (type_error == NOT_NULL_VIOLATION || type_error == CHECK_VIOLATION)
+            return BAD_PARAMS;
+        else if (type_error == UNIQUE_VIOLATION)
+            return ALREADY_EXISTS;
+        else if (type_error == FOREIGN_KEY_VIOLATION)
+            return NOT_EXISTS;
+        return ERROR;
+    }
+
+
+    /**Auxiliary functins for basic DataBase functions **/
+    //auxiliary create table function
+    private static PreparedStatement createTable(String table, Connection connection){
         PreparedStatement pstmt = null;
         try{
             switch (table){
@@ -96,16 +128,16 @@ public class Solution {
                     pstmt = connection.prepareStatement(
                             "CREATE TABLE " + table
                                     +"  (\n"
-                                    +"  student_id integer,\n"
-                                    +"  course_number integer,\n"
-                                    +"  semester integer,\n"
+                                    +"  student_id integer NOT NULL,\n"
+                                    +"  course_number integer NOT NULL,\n"
+                                    +"  semester integer NOT NULL,\n"
+                                    +"  UNIQUE (student_id,course_number,semester),\n"
                                     +"  FOREIGN KEY (course_number, semester)\n"
-                                    +"      REFERENCES public.\"Test\" (course_number, semester)\n"
+                                    +"      REFERENCES " + T_TEST + " (course_number, semester)\n"
                                     +"      ON UPDATE CASCADE\n"
-                                    +"      ON DELETE CASCADE\n"
-                                    +"      NOT VALID,\n"
+                                    +"      ON DELETE CASCADE,\n"
                                     +"  FOREIGN KEY (student_id)\n"
-                                    +"      REFERENCES public.\"Student\" (student_id)\n"
+                                    +"      REFERENCES " + T_STUDENT + " (student_id)\n"
                                     +"      ON UPDATE CASCADE\n"
                                     +"      ON DELETE CASCADE\n"
                                     +")\n"
@@ -117,15 +149,16 @@ public class Solution {
                     pstmt = connection.prepareStatement(
                             "CREATE TABLE " + table
                                     +"  (\n"
-                                    +"  course_number integer,\n"
-                                    +"  semester integer,\n"
+                                    +"  course_number integer NOT NULL,\n"
+                                    +"  semester integer NOT NULL,\n"
                                     +"  supervisor_id integer,\n"
+                                    +"  UNIQUE (course_number,semester,supervisor_id),\n"
                                     +"  FOREIGN KEY (course_number, semester)\n"
-                                    +"      REFERENCES public.\"Test\" (course_number, semester)\n"
+                                    +"      REFERENCES " + T_TEST +" (course_number, semester)\n"
                                     +"      ON UPDATE CASCADE\n"
                                     +"      ON DELETE CASCADE,\n"
                                     +"  FOREIGN KEY (supervisor_id)\n"
-                                    +"      REFERENCES public.\"Supervisor\" (supervisor_id)\n"
+                                    +"      REFERENCES " + T_SUPERVISOR + " (supervisor_id)\n"
                                     +"      ON UPDATE CASCADE\n"
                                     +"      ON DELETE CASCADE\n"
                                     +")\n"
@@ -136,7 +169,7 @@ public class Solution {
         } catch (SQLException e) {}
         return pstmt;
     }
-
+    //auxiliary clear table function
     private static PreparedStatement clearTable(String table, Connection connection){ //clear table helper
         PreparedStatement pstmt = null;
         try{
@@ -147,7 +180,7 @@ public class Solution {
         } catch (SQLException e) {}
         return pstmt;
     }
-
+    //auxiliary drop table function
     private static PreparedStatement dropTable(String table, Connection connection){ //dropTable helper
         PreparedStatement pstmt = null;
         try{
@@ -158,23 +191,39 @@ public class Solution {
         return pstmt;
     }
 
-    private static ReturnValue connectionEpilog(Connection con, PreparedStatement pstmt) {
-        try {
-            pstmt.close();
-        } catch (SQLException e) {
-            return ERROR;
-        }
-        try {
-            con.close();
-        } catch (SQLException e) {
-            return ERROR;
-        }
-        return OK;
+
+    /**Auxiliary functions for CRUD API **/
+    // convert a record of ResultSet to an instance of the
+    //Test business object
+    private static void instanceFromTest(ResultSet rs,Test test) throws SQLException {
+        test.setId(rs.getInt("course_number"));
+        test.setSemester(rs.getInt("semester"));
+        test.setCreditPoints(rs.getInt("credit_points"));
+        test.setDay(rs.getInt("day"));
+        test.setRoom(rs.getInt("room"));
+        test.setTime(rs.getInt("time"));
+        //return test;
+    }
+    // convert a record of ResultSet to an instance of the
+    //Student business object
+    private static void instanceFromStudent(ResultSet rs,Student student) throws SQLException {
+        student.setId(rs.getInt("student_id"));
+        student.setName(rs.getString("name"));
+        student.setFaculty(rs.getString("faculty"));
+        student.setCreditPoints(rs.getInt("credit_points"));
+        //return student;
+    }
+    // convert a record of ResultSet to an instance of the
+    //Supervisor business object
+    private static void instanceFromSupervisor(ResultSet rs,Supervisor supervisor) throws SQLException {
+        supervisor.setId(rs.getInt("supervisor_id"));
+        supervisor.setName(rs.getString("name"));
+        supervisor.setSalary(rs.getInt("salary"));
+        //return supervisor;
     }
 
-
-
-    /************************************************************/
+    /*****************************************************************************************************************/
+    /**4 - Basic DataBase functions**/
 
     public static void createTables() {
         InitialState.createInitialState();
@@ -234,6 +283,9 @@ public class Solution {
         connectionEpilog(connection,pstmt); //with finally for each iteration?
     }
 
+    /*****************************************************************************************************************/
+    /**3.2 - CRUD API**/
+
     public static ReturnValue addTest(Test test) {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
@@ -254,12 +306,7 @@ public class Solution {
         } catch (SQLException e){
             int vio = Integer.valueOf(e.getSQLState());
             connectionEpilog(connection,pstmt);
-            if (vio == NOT_NULL_VIOLATION || vio == CHECK_VIOLATION) {
-                return BAD_PARAMS;
-            } else if (vio==UNIQUE_VIOLATION){
-                return ALREADY_EXISTS;
-            }
-            return ERROR;
+            return typeOfErrorForInsert(vio);
         } finally {
             ret = connectionEpilog(connection,pstmt);
         }
@@ -267,29 +314,24 @@ public class Solution {
     }
 
     public static Test getTestProfile(Integer testID, Integer semester) {
-        Test test = new Test();
+        Test test = Test.badTest();
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
         ResultSet rs = null;
         try {
             pstmt = connection.prepareStatement(
                     "SELECT * FROM " + T_TEST
-                            + "WHERE course_number = ? AND semester = ?");
+                            + " WHERE course_number = ? AND semester = ?");
             pstmt.setInt(1,testID);
             pstmt.setInt(2,semester);
 
             rs = pstmt.executeQuery();
             if (rs.next()) {
-                test.setId(rs.getInt("course_number"));
-                test.setSemester(rs.getInt("semester"));
-                test.setCreditPoints(rs.getInt("credit_points"));
-                test.setDay(rs.getInt("day"));
-                test.setRoom(rs.getInt("room"));
-                test.setTime(rs.getInt("time"));
+                instanceFromTest(rs,test);
 
             }
         } catch (SQLException e) {
-            test = new Test();
+            //test = Test.badTest();
         } finally {
             connectionEpilog(connection, pstmt);
         }
@@ -299,7 +341,7 @@ public class Solution {
     public static ReturnValue deleteTest(Integer testID, Integer semester) {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
-        int del = 0;
+        boolean del = false;
         ReturnValue ret = OK;
         try {
             pstmt = connection.prepareStatement(
@@ -309,14 +351,15 @@ public class Solution {
             pstmt.setInt(1,testID);
             pstmt.setInt(2,semester);
 
-            del = pstmt.executeUpdate();
+            del = pstmt.execute();
         } catch (SQLException e) {
             connectionEpilog(connection, pstmt);
             return ERROR;
         } finally {
             ret = connectionEpilog(connection, pstmt);
         }
-        if (del == 0) { return NOT_EXISTS; }    // 0 records deleted
+        if (del) { return NOT_EXISTS; }    // del is true if the first result is a ResultSet object;
+                                            // false if the first result is an update count or there is no result
         return ret;
     }
 
@@ -339,12 +382,7 @@ public class Solution {
         } catch (SQLException e){
             int vio = Integer.valueOf(e.getSQLState());
             connectionEpilog(connection,pstmt);
-            if (vio == NOT_NULL_VIOLATION || vio == CHECK_VIOLATION) {
-                return BAD_PARAMS;
-            } else if (vio==UNIQUE_VIOLATION){
-                return ALREADY_EXISTS;
-            }
-            return ERROR;
+            return typeOfErrorForInsert(vio);
         } finally {
             ret = connectionEpilog(connection,pstmt);
         }
@@ -352,26 +390,23 @@ public class Solution {
     }
 
     public static Student getStudentProfile(Integer studentID) {
-        Student student = new Student();
+        Student student=Student.badStudent();
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
         ResultSet rs = null;
         try {
             pstmt = connection.prepareStatement(
                     "SELECT * FROM " + T_STUDENT
-                            + "WHERE couse_number = ?");
+                            + " WHERE student_id = ?");
             pstmt.setInt(1,studentID);
 
             rs = pstmt.executeQuery();
             if (rs.next()) {
-                student.setId(rs.getInt("student_id"));
-                student.setName(rs.getString("name"));
-                student.setFaculty(rs.getString("faculty"));
-                student.setCreditPoints(rs.getInt("credit_number"));
+               instanceFromStudent(rs,student);
 
             }
         } catch (SQLException e) {
-            student = new Student();
+            //student = Student.badStudent();
         } finally {
             connectionEpilog(connection, pstmt);
         }
@@ -381,7 +416,7 @@ public class Solution {
     public static ReturnValue deleteStudent(Integer studentID) {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
-        int del = 0;
+        boolean del = false;
         ReturnValue ret = OK;
         try {
             pstmt = connection.prepareStatement(
@@ -390,14 +425,15 @@ public class Solution {
 
             pstmt.setInt(1,studentID);
 
-            del = pstmt.executeUpdate();
+            del = pstmt.execute();
         } catch (SQLException e) {
             connectionEpilog(connection, pstmt);
             return ERROR;
         } finally {
             ret = connectionEpilog(connection, pstmt);
         }
-        if (del == 0) { return NOT_EXISTS; }    // 0 records deleted
+        if (del) { return NOT_EXISTS; }    // del is true if the first result is a ResultSet object;
+                                            // false if the first result is an update count or there is no result
         return ret;
     }
 
@@ -419,12 +455,7 @@ public class Solution {
         } catch (SQLException e){
             int vio = Integer.valueOf(e.getSQLState());
             connectionEpilog(connection,pstmt);
-            if (vio == NOT_NULL_VIOLATION || vio == CHECK_VIOLATION) {
-                return BAD_PARAMS;
-            } else if (vio==UNIQUE_VIOLATION){
-                return ALREADY_EXISTS;
-            }
-            return ERROR;
+            return typeOfErrorForInsert(vio);
         } finally {
             ret = connectionEpilog(connection,pstmt);
         }
@@ -432,25 +463,23 @@ public class Solution {
     }
 
     public static Supervisor getSupervisorProfile(Integer supervisorID) {
-        Supervisor supervisor = new Supervisor();
+        Supervisor supervisor = Supervisor.badSupervisor();
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
         ResultSet rs = null;
         try {
             pstmt = connection.prepareStatement(
                     "SELECT * FROM " + T_SUPERVISOR
-                            + "WHERE supervisor_id = ?");
+                            + " WHERE supervisor_id = ?");
             pstmt.setInt(1,supervisorID);
 
             rs = pstmt.executeQuery();
             if (rs.next()) {
-                supervisor.setId(rs.getInt("supervisor_id"));
-                supervisor.setName(rs.getString("name"));
-                supervisor.setSalary(rs.getInt("salary"));
+                instanceFromSupervisor(rs,supervisor);
 
             }
         } catch (SQLException e) {
-            supervisor = new Supervisor();
+            //supervisor = Supervisor.badSupervisor();
         } finally {
             connectionEpilog(connection, pstmt);
         }
@@ -460,7 +489,7 @@ public class Solution {
     public static ReturnValue deleteSupervisor(Integer supervisorID) {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
-        int del = 0;
+        boolean del = false;
         ReturnValue ret = OK;
         try {
             pstmt = connection.prepareStatement(
@@ -469,16 +498,20 @@ public class Solution {
 
             pstmt.setInt(1,supervisorID);
 
-            del = pstmt.executeUpdate();
+            del = pstmt.execute();
         } catch (SQLException e) {
             connectionEpilog(connection, pstmt);
             return ERROR;
         } finally {
             ret = connectionEpilog(connection, pstmt);
         }
-        if (del == 0) { return NOT_EXISTS; }    // 0 records deleted
+        if (del) { return NOT_EXISTS; }    // del is true if the first result is a ResultSet object;
+                                            // false if the first result is an update count or there is no result
         return ret;
     }
+
+    /*****************************************************************************************************************/
+    /**3.3 - BASIC API**/
 
     public static ReturnValue studentAttendTest(Integer studentID, Integer testID, Integer semester) {
         Connection connection = DBConnector.getConnection();
@@ -498,14 +531,7 @@ public class Solution {
         } catch (SQLException e){
             int vio = Integer.valueOf(e.getSQLState());
             connectionEpilog(connection,pstmt);
-            if (vio == NOT_NULL_VIOLATION || vio == CHECK_VIOLATION) {
-                return BAD_PARAMS;
-            } else if (vio==UNIQUE_VIOLATION){
-                return ALREADY_EXISTS;
-            } else if (vio==FOREIGN_KEY_VIOLATION){
-                return NOT_EXISTS;
-            }
-            return ERROR;
+            return typeOfErrorForInsert(vio);
         } finally {
             ret = connectionEpilog(connection,pstmt);
         }
@@ -515,7 +541,7 @@ public class Solution {
     public static ReturnValue studentWaiveTest(Integer studentID, Integer testID, Integer semester) {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
-        int del = 0;
+        boolean del = false;
         ReturnValue ret = OK;
         try {
             pstmt = connection.prepareStatement(
@@ -526,14 +552,15 @@ public class Solution {
             pstmt.setInt(1,testID);
             pstmt.setInt(1,semester);
 
-            del = pstmt.executeUpdate();
+            del = pstmt.execute();
         } catch (SQLException e) {
             connectionEpilog(connection, pstmt);
             return ERROR;
         } finally {
             ret = connectionEpilog(connection, pstmt);
         }
-        if (del == 0) { return NOT_EXISTS; }    // 0 records deleted
+        if (del) { return NOT_EXISTS; }    // del is true if the first result is a ResultSet object;
+                                           // false if the first result is an update count or there is no result
         return ret;
     }
 
@@ -555,14 +582,7 @@ public class Solution {
         } catch (SQLException e){
             int vio = Integer.valueOf(e.getSQLState());
             connectionEpilog(connection,pstmt);
-            if (vio == NOT_NULL_VIOLATION || vio == CHECK_VIOLATION) {
-                return BAD_PARAMS;
-            } else if (vio==UNIQUE_VIOLATION){
-                return ALREADY_EXISTS;
-            } else if (vio==FOREIGN_KEY_VIOLATION){
-                return NOT_EXISTS;
-            }
-            return ERROR;
+            return typeOfErrorForInsert(vio);
         } finally {
             ret = connectionEpilog(connection,pstmt);
         }
@@ -572,7 +592,7 @@ public class Solution {
     public static ReturnValue supervisorStopsOverseeTest(Integer supervisorID, Integer testID, Integer semester) {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
-        int del = 0;
+        boolean del = false;
         ReturnValue ret = OK;
         try {
             pstmt = connection.prepareStatement(
@@ -583,14 +603,15 @@ public class Solution {
             pstmt.setInt(1,testID);
             pstmt.setInt(1,semester);
 
-            del = pstmt.executeUpdate();
+            del = pstmt.execute();
         } catch (SQLException e) {
             connectionEpilog(connection, pstmt);
             return ERROR;
         } finally {
             ret = connectionEpilog(connection, pstmt);
         }
-        if (del == 0) { return NOT_EXISTS; }    // 0 records deleted
+        if (del) { return NOT_EXISTS; }    // del is true if the first result is a ResultSet object;
+                                            // false if the first result is an update count or there is no result
         return ret;
     }
     public static Float averageTestCost() {
@@ -620,6 +641,9 @@ public class Solution {
     public static Integer getMostPopularTest(String faculty) {
         return 0;
     }
+
+    /*****************************************************************************************************************/
+    /**3.4 - Advanced API**/
 
     public static ArrayList<Integer> getConflictingTests() {
         return new ArrayList<Integer>();
