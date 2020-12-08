@@ -41,6 +41,9 @@ public class SimpleTest extends AbstractTest{
 
         ret = Solution.deleteTest(1,1);
         assertEquals(ReturnValue.OK, ret);
+
+        ret = Solution.deleteTest(1,1);
+        assertEquals(ReturnValue.NOT_EXISTS, ret);
     }
 
     @org.junit.Test

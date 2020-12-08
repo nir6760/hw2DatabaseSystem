@@ -24,7 +24,7 @@ public class Solution {
     static final int UNIQUE_VIOLATION = PostgreSQLErrorCodes.UNIQUE_VIOLATION.getValue();
     static final int CHECK_VIOLATION = PostgreSQLErrorCodes.CHECK_VIOLATION.getValue();
 
-
+    static final int ERRORCALC = 0;
 
 
     static final String T_STUDENT = "Student";
@@ -33,7 +33,12 @@ public class Solution {
     static final String T_TAKE_TEST = "TakeTest";
     static final String T_OVERSEE = "Oversee";
 
+    static final String V_TAKETEST_JOIN_TEST = "ViewTakeTestTest";
+    static final String V_SUPERVISOR_LEFT_JOIN_OVERSEE = "ViewOverseeSupervisor";
+    static final String V_STUDENT_JOIN_V2 = "ViewStudentV2";
+
     static final String[] tables = {T_STUDENT, T_TEST, T_SUPERVISOR, T_TAKE_TEST, T_OVERSEE};
+    static final String[] views = { V_SUPERVISOR_LEFT_JOIN_OVERSEE , V_TAKETEST_JOIN_TEST,  V_STUDENT_JOIN_V2 };
     /************************************************************/
 
     /*****************************************************************************************************************/
@@ -169,8 +174,48 @@ public class Solution {
         } catch (SQLException e) {}
         return pstmt;
     }
+    //auxiliary create View function
+    private static PreparedStatement createView(String view, Connection connection){
+        PreparedStatement pstmt = null;
+        try{
+            switch (view){
+                case V_SUPERVISOR_LEFT_JOIN_OVERSEE: {
+                    pstmt = connection.prepareStatement(
+                            "CREATE VIEW " + view + " AS\n"
+                                    +"SELECT "
+                                    + "OS.course_number, OS.semester,SUP.supervisor_id, SUP.salary\n"
+                                    + "FROM " + T_SUPERVISOR + " SUP LEFT OUTER JOIN " + T_OVERSEE +" OS\n"
+                                    + "ON OS.supervisor_id = SUP.supervisor_id"
+                    );
+                    break;
+                }
+                case V_TAKETEST_JOIN_TEST: {
+                    pstmt = connection.prepareStatement(
+                            "CREATE VIEW " + view + " AS\n"
+                                    +"SELECT "
+                                    + "taketes.student_id, SUM(tes.credit_points) student_total_credit_points\n"
+                                    + "FROM " + T_TAKE_TEST + " taketes INNER JOIN " + T_TEST +" tes\n"
+                                    + "ON taketes.course_number = tes.course_number AND taketes.semester = tes.semester\n"+
+                                    "GROUP BY (taketes.student_id)"
+                    );
+                    break;
+                }
+                case V_STUDENT_JOIN_V2: {
+                    pstmt = connection.prepareStatement(
+                            "CREATE VIEW " + view + " AS\n"
+                            +"SELECT stu.student_id, stu.faculty, (stu.credit_points+COALESCE(view2.student_total_credit_points,0)) student_total_points FROM \n" +
+                                    T_STUDENT + " stu LEFT OUTER JOIN " + V_TAKETEST_JOIN_TEST +" view2\n" +
+                                    "ON stu.student_id = view2.student_id"
+                   );
+                    break;
+                }
+
+            }
+        } catch (SQLException e) {}
+        return pstmt;
+    }
     //auxiliary clear table function
-    private static PreparedStatement clearTable(String table, Connection connection){ //clear table helper
+    private static PreparedStatement clearTable(String table, Connection connection){
         PreparedStatement pstmt = null;
         try{
             pstmt = connection.prepareStatement(
@@ -180,8 +225,18 @@ public class Solution {
         } catch (SQLException e) {}
         return pstmt;
     }
+    //auxiliary drop View function
+    private static PreparedStatement dropView(String view, Connection connection){
+        PreparedStatement pstmt = null;
+        try{
+            pstmt = connection.prepareStatement(
+                    "DROP VIEW IF EXISTS " + view);
+
+        } catch (SQLException e) {}
+        return pstmt;
+    }
     //auxiliary drop table function
-    private static PreparedStatement dropTable(String table, Connection connection){ //dropTable helper
+    private static PreparedStatement dropTable(String table, Connection connection){
         PreparedStatement pstmt = null;
         try{
             pstmt = connection.prepareStatement(
@@ -237,8 +292,18 @@ public class Solution {
                 e.printStackTrace();
                 connectionEpilog(connection,pstmt); //if we cant excute end connection and return
                 return;
-            } ///todo:
+            } ///todo: check catch
 
+        }
+        for(String view: views){
+            pstmt = createView(view,connection);
+            try {
+                if (pstmt != null) pstmt.execute();
+            } catch (SQLException e) {
+                e.printStackTrace();
+                connectionEpilog(connection,pstmt); //if we cant excute end connection and return
+                return;
+            } ///todo: check catch
         }
         connectionEpilog(connection,pstmt); //with finally for each iteration?
 
@@ -257,9 +322,9 @@ public class Solution {
                 e.printStackTrace();
                 connectionEpilog(connection,pstmt); //if we cant excute end connection and return
                 return;
-            } ///todo:
+            } ///todo: check catch
 
-        }
+        }//todo: chck if need to clear views
         connectionEpilog(connection,pstmt); //with finally for each iteration?
 
     }
@@ -269,6 +334,19 @@ public class Solution {
 		//drop your tables here
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
+
+        for (int i=views.length-1; i>=0 ; i--) {
+            pstmt = dropView(views[i],connection);
+            try {
+                if (pstmt != null) pstmt.execute();
+            } catch (SQLException e) {
+                e.printStackTrace();
+                connectionEpilog(connection,pstmt); //if we cant excute end connection and return
+                return;
+            } ///todo: check catch
+
+        }
+
         for (int i=tables.length-1; i>=0 ; i--) { //because of the dependecies we have to drop the end to the front
             pstmt = dropTable(tables[i],connection);
             try {
@@ -277,7 +355,7 @@ public class Solution {
                 e.printStackTrace();
                 connectionEpilog(connection,pstmt); //if we cant excute end connection and return
                 return;
-            } ///todo:
+            } ///todo: check catch
 
         }
         connectionEpilog(connection,pstmt); //with finally for each iteration?
@@ -341,7 +419,7 @@ public class Solution {
     public static ReturnValue deleteTest(Integer testID, Integer semester) {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
-        boolean del = false;
+        int del = 0;
         ReturnValue ret = OK;
         try {
             pstmt = connection.prepareStatement(
@@ -351,15 +429,14 @@ public class Solution {
             pstmt.setInt(1,testID);
             pstmt.setInt(2,semester);
 
-            del = pstmt.execute();
+            del = pstmt.executeUpdate();
         } catch (SQLException e) {
             connectionEpilog(connection, pstmt);
             return ERROR;
         } finally {
             ret = connectionEpilog(connection, pstmt);
         }
-        if (del) { return NOT_EXISTS; }    // del is true if the first result is a ResultSet object;
-                                            // false if the first result is an update count or there is no result
+        if (del == 0) { return NOT_EXISTS; }    // 0 records affected means no delete
         return ret;
     }
 
@@ -416,7 +493,7 @@ public class Solution {
     public static ReturnValue deleteStudent(Integer studentID) {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
-        boolean del = false;
+        int del = 0;
         ReturnValue ret = OK;
         try {
             pstmt = connection.prepareStatement(
@@ -425,15 +502,14 @@ public class Solution {
 
             pstmt.setInt(1,studentID);
 
-            del = pstmt.execute();
+            del = pstmt.executeUpdate();
         } catch (SQLException e) {
             connectionEpilog(connection, pstmt);
             return ERROR;
         } finally {
             ret = connectionEpilog(connection, pstmt);
         }
-        if (del) { return NOT_EXISTS; }    // del is true if the first result is a ResultSet object;
-                                            // false if the first result is an update count or there is no result
+        if (del == 0) { return NOT_EXISTS; }    // 0 records affected means no delete
         return ret;
     }
 
@@ -489,7 +565,7 @@ public class Solution {
     public static ReturnValue deleteSupervisor(Integer supervisorID) {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
-        boolean del = false;
+        int del = 0;
         ReturnValue ret = OK;
         try {
             pstmt = connection.prepareStatement(
@@ -498,15 +574,14 @@ public class Solution {
 
             pstmt.setInt(1,supervisorID);
 
-            del = pstmt.execute();
+            del = pstmt.executeUpdate();
         } catch (SQLException e) {
             connectionEpilog(connection, pstmt);
             return ERROR;
         } finally {
             ret = connectionEpilog(connection, pstmt);
         }
-        if (del) { return NOT_EXISTS; }    // del is true if the first result is a ResultSet object;
-                                            // false if the first result is an update count or there is no result
+        if (del == 0) { return NOT_EXISTS; }    // 0 records affected means no delete
         return ret;
     }
 
@@ -541,7 +616,7 @@ public class Solution {
     public static ReturnValue studentWaiveTest(Integer studentID, Integer testID, Integer semester) {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
-        boolean del = false;
+        int del = 0;
         ReturnValue ret = OK;
         try {
             pstmt = connection.prepareStatement(
@@ -549,18 +624,17 @@ public class Solution {
                             + " WHERE student_id = ? AND course_number = ? AND semester = ?");
 
             pstmt.setInt(1,studentID);
-            pstmt.setInt(1,testID);
-            pstmt.setInt(1,semester);
+            pstmt.setInt(2,testID);
+            pstmt.setInt(3,semester);
 
-            del = pstmt.execute();
+            del = pstmt.executeUpdate();
         } catch (SQLException e) {
             connectionEpilog(connection, pstmt);
             return ERROR;
         } finally {
             ret = connectionEpilog(connection, pstmt);
         }
-        if (del) { return NOT_EXISTS; }    // del is true if the first result is a ResultSet object;
-                                           // false if the first result is an update count or there is no result
+        if (del == 0) { return NOT_EXISTS; }    // 0 records affected means no delete
         return ret;
     }
 
@@ -592,7 +666,7 @@ public class Solution {
     public static ReturnValue supervisorStopsOverseeTest(Integer supervisorID, Integer testID, Integer semester) {
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
-        boolean del = false;
+        int del = 0;
         ReturnValue ret = OK;
         try {
             pstmt = connection.prepareStatement(
@@ -600,57 +674,271 @@ public class Solution {
                             + " WHERE supervisor_id = ? AND course_number = ? AND semester = ?");
 
             pstmt.setInt(1,supervisorID);
-            pstmt.setInt(1,testID);
-            pstmt.setInt(1,semester);
+            pstmt.setInt(2,testID);
+            pstmt.setInt(3,semester);
 
-            del = pstmt.execute();
+            del = pstmt.executeUpdate();
         } catch (SQLException e) {
             connectionEpilog(connection, pstmt);
             return ERROR;
         } finally {
             ret = connectionEpilog(connection, pstmt);
         }
-        if (del) { return NOT_EXISTS; }    // del is true if the first result is a ResultSet object;
-                                            // false if the first result is an update count or there is no result
+        if (del == 0) { return NOT_EXISTS; }    // 0 records affected means no delete
         return ret;
     }
     public static Float averageTestCost() {
-        return 0.0f;
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        float ret = 0;
+        ResultSet rs = null;
+        try {
+            pstmt = connection.prepareStatement(
+                    "SELECT sum(av)/count(*) avTestCost\n"
+                            + "FROM (SELECT avg(salary) av FROM \n"
+                            + T_TEST + " tes LEFT OUTER JOIN " + V_SUPERVISOR_LEFT_JOIN_OVERSEE +" view1\n"
+                            + "ON tes.course_number = view1.course_number \n"
+                            + "AND tes.semester = view1.semester\n"
+                            + "GROUP BY  tes.course_number, tes.semester) q_av");
+            rs = pstmt.executeQuery();
+            if (rs.next()) {
+                ret = rs.getFloat(1);
+
+            }
+        } catch (SQLException e) {
+            connectionEpilog(connection, pstmt);
+            return (float)ERRORCALC;
+        } finally {
+            connectionEpilog(connection, pstmt);
+        }
+        return ret;
     }
 
     public static Integer getWage(Integer supervisorID) {
-        return 0;
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        int ret = -1;
+        ResultSet rs = null;
+        try {
+            pstmt = connection.prepareStatement(
+                    "SELECT salary*count( course_number) FROM \n"
+                            + V_SUPERVISOR_LEFT_JOIN_OVERSEE + " view1\n"
+                            + "WHERE supervisor_id = ? \n"
+                            + "GROUP BY supervisor_id, salary");
+            pstmt.setInt(1,supervisorID);
+            rs = pstmt.executeQuery();
+            if (rs.next()) {
+                ret = rs.getInt(1);
+
+            }
+
+        } catch (SQLException e) {
+            connectionEpilog(connection, pstmt);
+            return ERRORCALC;
+        } finally {
+            connectionEpilog(connection, pstmt);
+        }
+        return ret;
     }
 
     public static ArrayList<Integer> supervisorOverseeStudent() {
-        return new ArrayList<Integer>();
+        ArrayList<Integer> arr_student_id= new ArrayList<Integer>();
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        try {
+            pstmt = connection.prepareStatement(
+                    "SELECT DISTINCT student_id FROM \n" +
+                            T_TAKE_TEST + " taketes INNER JOIN " + T_OVERSEE + " os\n" +
+                            "ON taketes.course_number = os.course_number AND taketes.semester = os.semester\n" +
+                            "GROUP BY student_id,supervisor_id\n" +
+                            "HAVING COUNT(*) >= 2\n" +
+                            "ORDER BY student_id desc");
+            rs = pstmt.executeQuery();
+            while (rs.next()) {
+                arr_student_id.add(rs.getInt(1));
+
+            }
+
+        } catch (SQLException e) {
+            connectionEpilog(connection, pstmt);
+        } finally {
+            connectionEpilog(connection, pstmt);
+        }
+        return arr_student_id;
+
     }
 
     public static ArrayList<Integer> testsThisSemester(Integer semester) {
-        return new ArrayList<Integer>();
+        ArrayList<Integer> arr_test_id= new ArrayList<Integer>();
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        try {
+            pstmt = connection.prepareStatement(
+                    "SELECT DISTINCT course_number FROM \n" +
+                            T_TEST + "\n" +
+                            "WHERE semester = ?\n" +
+                            "ORDER BY course_number desc\n" +
+                            "LIMIT 5");
+            pstmt.setInt(1,semester);
+            rs = pstmt.executeQuery();
+            while (rs.next()) {
+                arr_test_id.add(rs.getInt(1));
+
+            }
+
+        } catch (SQLException e) {
+            connectionEpilog(connection, pstmt);
+        } finally {
+            connectionEpilog(connection, pstmt);
+        }
+        return arr_test_id;
     }
 
     public static Boolean studentHalfWayThere(Integer studentID) {
-        return true;
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        boolean is_half_way=false;
+        try {
+            pstmt = connection.prepareStatement(
+                    "SELECT EXISTS(SELECT  student_id FROM \n" +
+                             T_STUDENT + " stu INNER JOIN CREDITPOINTS cp\n" +
+                            "ON stu.faculty = cp.faculty\n" +
+                            "WHERE stu.student_id= ? AND stu.credit_points >= cp.points/2) isExist");
+            pstmt.setInt(1,studentID);
+            rs = pstmt.executeQuery();
+            if (rs.next()) {
+                is_half_way = rs.getBoolean("isExist");
+
+            }
+
+        } catch (SQLException e) {
+            connectionEpilog(connection, pstmt);
+        } finally {
+            connectionEpilog(connection, pstmt);
+        }
+        return is_half_way;
     }
 
     public static Integer studentCreditPoints(Integer studentID) {
-        return 0;
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        int total_points = 0;
+        try {
+            pstmt = connection.prepareStatement(
+                    "SELECT student_total_points FROM \n" +
+                            V_STUDENT_JOIN_V2   +
+                            " WHERE student_id= ?");
+            pstmt.setInt(1,studentID);
+            rs = pstmt.executeQuery();
+            if (rs.next()) {
+                total_points = rs.getInt("student_total_points");
+
+            }
+
+        } catch (SQLException e) {
+            connectionEpilog(connection, pstmt);
+        } finally {
+            connectionEpilog(connection, pstmt);
+        }
+        return total_points;
     }
 
     public static Integer getMostPopularTest(String faculty) {
-        return 0;
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        int course_num = 0;
+        try {
+            pstmt = connection.prepareStatement(
+                    "SELECT tes.course_number, COUNT(tes.course_number) value_occurrence \n" +
+                            "FROM \n" +
+                            "(" +T_STUDENT + " stu INNER JOIN "+ T_TAKE_TEST + " taketes ON stu.student_id = taketes.student_id )\n" +
+                            "RIGHT OUTER JOIN " +T_TEST + " tes ON taketes.course_number = tes.course_number\n" +
+                            "AND taketes.semester=tes.semester\n" +
+                            "WHERE stu.faculty = ?\n" +
+                            "GROUP BY tes.course_number\n" +
+                            "ORDER BY value_occurrence DESC , tes.course_number DESC\n" +
+                            "LIMIT 1 ");
+            pstmt.setString(1,faculty);
+            rs = pstmt.executeQuery();
+            if (rs.next()) {
+                course_num = rs.getInt("course_number");
+
+            }
+
+        } catch (SQLException e) {
+            connectionEpilog(connection, pstmt);
+        } finally {
+            connectionEpilog(connection, pstmt);
+        }
+        return course_num;
+
     }
 
     /*****************************************************************************************************************/
     /**3.4 - Advanced API**/
 
     public static ArrayList<Integer> getConflictingTests() {
-        return new ArrayList<Integer>();
+        ArrayList<Integer> arr_con_test_id= new ArrayList<Integer>();
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        try {
+            pstmt = connection.prepareStatement(
+                    "SELECT tes1.course_number FROM\n" +
+                            T_TEST + " tes1 INNER JOIN\n" +
+                            "(SELECT semester,time,day, COUNT(*) count_times\n" +
+                            "FROM " + T_TEST +"\n" +
+                            "GROUP BY semester,time,day\n" +
+                            "HAVING COUNT(*) >= 2) tes2\n" +
+                            "ON \n" +
+                            "tes1.semester=tes2.semester AND tes1.time=tes2.time AND\n" +
+                            "tes1.day=tes2.day\n" +
+                            "ORDER BY tes1.course_number ASC ");
+            rs = pstmt.executeQuery();
+            while (rs.next()) {
+                arr_con_test_id.add(rs.getInt("course_number"));
+
+            }
+
+        } catch (SQLException e) {
+            connectionEpilog(connection, pstmt);
+        } finally {
+            connectionEpilog(connection, pstmt);
+        }
+        return arr_con_test_id;
+
     }
 
     public static ArrayList<Integer> graduateStudents() {
-        return new ArrayList<Integer>();
+        ArrayList<Integer> arr_student_id= new ArrayList<Integer>();
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        try {
+            pstmt = connection.prepareStatement(
+                    "SELECT student_id, view3.student_total_points, cp.points FROM\n" +
+                            V_STUDENT_JOIN_V2 + " view3 INNER JOIN CREDITPOINTS cp\n" +
+                            "ON view3.faculty = cp.faculty\n" +
+                            "WHERE view3.student_total_points >= cp.points\n" +
+                            "ORDER BY student_id ASC\n" +
+                            "LIMIT 5");
+            rs = pstmt.executeQuery();
+            while (rs.next()) {
+                arr_student_id.add(rs.getInt("student_id"));
+
+            }
+
+        } catch (SQLException e) {
+            connectionEpilog(connection, pstmt);
+        } finally {
+            connectionEpilog(connection, pstmt);
+        }
+        return arr_student_id;
     }
 
     public static ArrayList<Integer> getCloseStudents(Integer studentID) {
