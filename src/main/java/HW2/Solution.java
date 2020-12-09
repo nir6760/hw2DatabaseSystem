@@ -36,9 +36,10 @@ public class Solution {
     static final String V_TAKETEST_JOIN_TEST = "ViewTakeTestTest";
     static final String V_SUPERVISOR_LEFT_JOIN_OVERSEE = "ViewOverseeSupervisor";
     static final String V_STUDENT_JOIN_V2 = "ViewStudentV2";
+    static final String V_STUDENT_JOIN_TAKETEST = "ViewStudentTakeTest";
 
     static final String[] tables = {T_STUDENT, T_TEST, T_SUPERVISOR, T_TAKE_TEST, T_OVERSEE};
-    static final String[] views = { V_SUPERVISOR_LEFT_JOIN_OVERSEE , V_TAKETEST_JOIN_TEST,  V_STUDENT_JOIN_V2 };
+    static final String[] views = { V_SUPERVISOR_LEFT_JOIN_OVERSEE , V_TAKETEST_JOIN_TEST,  V_STUDENT_JOIN_V2 ,V_STUDENT_JOIN_TAKETEST};
     /************************************************************/
 
     /*****************************************************************************************************************/
@@ -209,6 +210,16 @@ public class Solution {
                    );
                     break;
                 }
+                case V_STUDENT_JOIN_TAKETEST: {
+                    pstmt = connection.prepareStatement(
+                            "CREATE VIEW " + view + " AS\n"
+                            +"SELECT stu1.student_id, taketes.course_number , taketes.semester , stu1.faculty\n"
+                                    + "FROM "+ T_STUDENT +" stu1 LEFT OUTER JOIN " + T_TAKE_TEST +" taketes\n"
+                                    + "ON stu1.student_id = taketes.student_id"
+                    );
+                    break;
+                }
+
 
             }
         } catch (SQLException e) {}
@@ -856,10 +867,10 @@ public class Solution {
             pstmt = connection.prepareStatement(
                     "SELECT tes.course_number, COUNT(tes.course_number) value_occurrence \n" +
                             "FROM \n" +
-                            "(" +T_STUDENT + " stu INNER JOIN "+ T_TAKE_TEST + " taketes ON stu.student_id = taketes.student_id )\n" +
-                            "RIGHT OUTER JOIN " +T_TEST + " tes ON taketes.course_number = tes.course_number\n" +
-                            "AND taketes.semester=tes.semester\n" +
-                            "WHERE stu.faculty = ?\n" +
+                            V_STUDENT_JOIN_TAKETEST +"  view4\n" +
+                            "RIGHT OUTER JOIN " +T_TEST + " tes ON view4.course_number = tes.course_number\n" +
+                            "AND view4.semester=tes.semester\n" +
+                            "WHERE view4.faculty = ?\n" +
                             "GROUP BY tes.course_number\n" +
                             "ORDER BY value_occurrence DESC , tes.course_number DESC\n" +
                             "LIMIT 1 ");
@@ -941,8 +952,40 @@ public class Solution {
         return arr_student_id;
     }
 
-    public static ArrayList<Integer> getCloseStudents(Integer studentID) {
-        return new ArrayList<Integer>();
+    public static ArrayList<Integer> getCloseStudents(Integer studentID) {//todo: not working
+        ArrayList<Integer> arr_student_id= new ArrayList<Integer>();
+        Connection connection = DBConnector.getConnection();
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        try {
+            pstmt = connection.prepareStatement(
+                    "SELECT student_id com_student,count(curr.curr_id) num_common\n" +
+                            "FROM\n" +
+                            V_STUDENT_JOIN_TAKETEST + " view4\n" +
+                            "LEFT OUTER JOIN \n" +
+                            "(SELECT student_id curr_id, course_number, semester FROM " + T_TAKE_TEST + " taketes1 WHERE student_id = ?)curr\n" +
+                            "ON curr.course_number = view4.course_number AND curr.semester = view4.semester\n" +
+                            "WHERE view4.student_id != ?\n" +
+                            "GROUP BY view4.student_id\n" +
+                            "HAVING count(curr.curr_id)>=0.5*\n" +
+                            "(SELECT count(*) FROM (SELECT student_id curr_id, course_number, semester FROM "+T_TAKE_TEST +" taketes1 WHERE student_id = ?)curr2)\n"+
+                            "ORDER BY com_student DESC\n" +
+                            "LIMIT 10");
+            pstmt.setInt(1,studentID);
+            pstmt.setInt(2,studentID);
+            pstmt.setInt(3,studentID);
+            rs = pstmt.executeQuery();
+            while (rs.next()) {
+                arr_student_id.add(rs.getInt("com_student"));
+
+            }
+
+        } catch (SQLException e) {
+            connectionEpilog(connection, pstmt);
+        } finally {
+            connectionEpilog(connection, pstmt);
+        }
+        return arr_student_id;
     }
 }
 
