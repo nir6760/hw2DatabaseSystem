@@ -43,7 +43,7 @@ public class getCloseStudentTest extends AbstractTest{
 
 
         // no 99 student
-        assertEquals("[5, 4, 3, 2, 1]", getCloseStudents(99).toString());//empty way (all other students) todo: check piazza
+        assertTrue(getCloseStudents(99).isEmpty());//no valid student
         assertEquals(OK, studentAttendTest(3, 1, 1));
         assertEquals("[5, 4, 3, 2]", getCloseStudents(1).toString());//empty way (all other students)
 
@@ -80,6 +80,8 @@ public class getCloseStudentTest extends AbstractTest{
         assertEquals(OK, studentWaiveTest(2, 1, 2)); //only 3 close to 1
         assertEquals("[3]", getCloseStudents(1).toString());
         assertEquals("[1]", getCloseStudents(3).toString());
+
+        assertTrue(getCloseStudents(101).isEmpty());//no valid student
 
     }
 

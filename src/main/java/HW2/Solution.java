@@ -961,19 +961,20 @@ public class Solution {
             pstmt = connection.prepareStatement(
                     "SELECT student_id com_student,count(curr.curr_id) num_common\n" +
                             "FROM\n" +
-                            V_STUDENT_JOIN_TAKETEST + " view4\n" +
+                            V_STUDENT_JOIN_TAKETEST + " view4 \n" +
                             "LEFT OUTER JOIN \n" +
                             "(SELECT student_id curr_id, course_number, semester FROM " + T_TAKE_TEST + " taketes1 WHERE student_id = ?)curr\n" +
-                            "ON curr.course_number = view4.course_number AND curr.semester = view4.semester\n" +
-                            "WHERE view4.student_id != ?\n" +
+                            "ON curr.course_number = view4.course_number AND curr.semester =  view4.semester \n" +
+                            "WHERE ? IN (SELECT student_id FROM " + T_STUDENT + ") AND view4.student_id != ?\n" +
                             "GROUP BY view4.student_id\n" +
                             "HAVING count(curr.curr_id)>=0.5*\n" +
-                            "(SELECT count(*) FROM (SELECT student_id curr_id, course_number, semester FROM "+T_TAKE_TEST +" taketes1 WHERE student_id = ?)curr2)\n"+
+                            "(SELECT count(*) FROM (SELECT student_id curr_id, course_number, semester FROM " + T_TAKE_TEST + " taketes1 WHERE student_id = ?)curr2)\n" +
                             "ORDER BY com_student DESC\n" +
                             "LIMIT 10");
             pstmt.setInt(1,studentID);
             pstmt.setInt(2,studentID);
             pstmt.setInt(3,studentID);
+            pstmt.setInt(4,studentID);
             rs = pstmt.executeQuery();
             while (rs.next()) {
                 arr_student_id.add(rs.getInt("com_student"));
