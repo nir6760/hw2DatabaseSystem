@@ -55,9 +55,31 @@ public class getCloseStudentTest extends AbstractTest{
 
         assertEquals(OK, studentAttendTest(2, 1, 1)); // 1, 2, 3 having same test
         assertEquals("[3, 2]", getCloseStudents(1).toString());
+        assertEquals("[3, 1]", getCloseStudents(2).toString());
+        assertEquals("[2, 1]", getCloseStudents(3).toString());
 
+        assertEquals(OK, studentAttendTest(1, 2, 1)); // still close to 1
+        assertEquals("[3, 2]", getCloseStudents(1).toString());
+        assertEquals("[3, 1]", getCloseStudents(2).toString());
+        assertEquals("[2, 1]", getCloseStudents(3).toString());
 
+        assertEquals(OK, studentAttendTest(1, 1, 2)); //no one close to 1
+        assertTrue(getCloseStudents(1).isEmpty()); //no close
+        assertEquals("[3, 1]", getCloseStudents(2).toString());
+        assertEquals("[2, 1]", getCloseStudents(3).toString());
 
+        assertEquals(OK, studentAttendTest(2, 1, 2)); // only 2 close to 1
+        assertEquals("[2]", getCloseStudents(1).toString());
+
+        assertEquals(OK, studentAttendTest(3, 2, 1)); // 3 is close to 1 again
+        assertEquals("[3, 2]", getCloseStudents(1).toString());
+        assertEquals(OK, studentAttendTest(3, 1, 2)); // 3 is as to 1 again
+        assertEquals("[3, 2]", getCloseStudents(1).toString());
+        assertEquals("[2, 1]", getCloseStudents(3).toString());
+
+        assertEquals(OK, studentWaiveTest(2, 1, 2)); //only 3 close to 1
+        assertEquals("[3]", getCloseStudents(1).toString());
+        assertEquals("[1]", getCloseStudents(3).toString());
 
     }
 
