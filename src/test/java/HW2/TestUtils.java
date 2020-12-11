@@ -21,7 +21,6 @@ public class TestUtils {
     public static Test createTestParam(int id, int semester,int time, int day) {
         return createTest(id, semester, time, 1, day, 1);
     }
-
     public static Student createStudent(int id, int credit_points, String name, String faculty) {
         Student s = new Student();
         s.setId(id);

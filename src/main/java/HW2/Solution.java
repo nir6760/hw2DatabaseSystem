@@ -37,9 +37,10 @@ public class Solution {
     static final String V_SUPERVISOR_LEFT_JOIN_OVERSEE = "ViewOverseeSupervisor";
     static final String V_STUDENT_JOIN_V2 = "ViewStudentV2";
     static final String V_STUDENT_JOIN_TAKETEST = "ViewStudentTakeTest";
+    static final String V_TAKE_TOGETHER = "ViewTakeTogether";
 
     static final String[] tables = {T_STUDENT, T_TEST, T_SUPERVISOR, T_TAKE_TEST, T_OVERSEE};
-    static final String[] views = { V_SUPERVISOR_LEFT_JOIN_OVERSEE , V_TAKETEST_JOIN_TEST,  V_STUDENT_JOIN_V2 ,V_STUDENT_JOIN_TAKETEST};
+    static final String[] views = { V_SUPERVISOR_LEFT_JOIN_OVERSEE , V_TAKETEST_JOIN_TEST,  V_STUDENT_JOIN_V2 ,V_STUDENT_JOIN_TAKETEST, V_TAKE_TOGETHER};
     /************************************************************/
 
     /*****************************************************************************************************************/
@@ -171,6 +172,7 @@ public class Solution {
                     );
                     break;
                 }
+
             }
         } catch (SQLException e) {}
         return pstmt;
@@ -216,6 +218,31 @@ public class Solution {
                             +"SELECT stu1.student_id, taketes.course_number , taketes.semester , stu1.faculty\n"
                                     + "FROM "+ T_STUDENT +" stu1 LEFT OUTER JOIN " + T_TAKE_TEST +" taketes\n"
                                     + "ON stu1.student_id = taketes.student_id"
+                    );
+                    break;
+                }
+
+                case V_TAKE_TOGETHER: {
+                    pstmt = connection.prepareStatement(
+                            "CREATE VIEW "+ V_TAKE_TOGETHER +" AS\n"+
+                                    "SELECT _tt.sid1,\n" +
+                                    "    _tt.sid2,\n" +
+                                    "    count(_tt.cn1) AS together\n" +
+                                    "   FROM ( SELECT v1.sid1,\n" +
+                                    "            v2.sid2,\n" +
+                                    "            v1.cn1,\n" +
+                                    "            v1.sem1\n" +
+                                    "           FROM (SELECT student_id AS sid1,\n" +
+                                    "                    course_number AS cn1,\n" +
+                                    "                    semester AS sem1\n" +
+                                    "                   FROM " + V_STUDENT_JOIN_TAKETEST + ") v1,\n" +
+                                    "            (SELECT student_id AS sid2,\n" +
+                                    "                    course_number AS cn2,\n" +
+                                    "                    semester AS sem2\n" +
+                                    "                   FROM " + V_STUDENT_JOIN_TAKETEST + ") v2\n" +
+                                    "          WHERE (((v1.cn1 = v2.cn2) AND (v1.sem1 = v2.sem2)) OR (v1.cn1 IS NULL))\n" +
+                                    "          ORDER BY v1.sid1, v2.sid2, v1.cn1) _tt\n" +
+                                    "  GROUP BY _tt.sid1, _tt.sid2"
                     );
                     break;
                 }
@@ -952,32 +979,34 @@ public class Solution {
         return arr_student_id;
     }
 
-    public static ArrayList<Integer> getCloseStudents(Integer studentID) {//todo: not working
+
+    public static ArrayList<Integer> getCloseStudents(Integer studentID) {
         ArrayList<Integer> arr_student_id= new ArrayList<Integer>();
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
         ResultSet rs = null;
         try {
             pstmt = connection.prepareStatement(
-                    "SELECT student_id com_student,count(curr.curr_id) num_common\n" +
+                    "SELECT sid2\n" +
                             "FROM\n" +
-                            V_STUDENT_JOIN_TAKETEST + " view4 \n" +
-                            "LEFT OUTER JOIN \n" +
-                            "(SELECT student_id curr_id, course_number, semester FROM " + T_TAKE_TEST + " taketes1 WHERE student_id = ?)curr\n" +
-                            "ON curr.course_number = view4.course_number AND curr.semester =  view4.semester \n" +
-                            "WHERE ? IN (SELECT student_id FROM " + T_STUDENT + ") AND view4.student_id != ?\n" +
-                            "GROUP BY view4.student_id\n" +
-                            "HAVING count(curr.curr_id)>=0.5*\n" +
-                            "(SELECT count(*) FROM (SELECT student_id curr_id, course_number, semester FROM " + T_TAKE_TEST + " taketes1 WHERE student_id = ?)curr2)\n" +
-                            "ORDER BY com_student DESC\n" +
+                            "(SELECT TT.sid1, sid2, together, take\n" +
+                            "FROM \n" +
+                            V_TAKE_TOGETHER + " TT\n" +
+                            "INNER JOIN\n" +
+                            "(\n" +
+                            "SELECT sid1, together as take\n" +
+                            "FROM " + V_TAKE_TOGETHER + " _TT\n" +
+                            "WHERE sid1=sid2\n" +
+                            ")Take\n" +
+                            "on TT.sid1=Take.sid1\n" +
+                            ") TvsT\n" +
+                            "WHERE sid1=? AND 2*together>=take AND sid1!=sid2\n" +
+                            "ORDER BY sid2 DESC\n" +
                             "LIMIT 10");
             pstmt.setInt(1,studentID);
-            pstmt.setInt(2,studentID);
-            pstmt.setInt(3,studentID);
-            pstmt.setInt(4,studentID);
             rs = pstmt.executeQuery();
             while (rs.next()) {
-                arr_student_id.add(rs.getInt("com_student"));
+                arr_student_id.add(rs.getInt("sid2"));
 
             }
 

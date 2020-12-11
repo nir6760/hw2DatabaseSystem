@@ -339,13 +339,13 @@ public class BasicAPITests1 extends AbstractTest {
         assertEquals(OK, addTest(createTest(1, 1)));
         assertEquals(OK, addTest(createTest(1, 2)));
         assertEquals(OK, addTest(createTest(2, 1)));
-        //todo:assertEquals(2, getMostPopularTest("CS").intValue());
+        assertEquals(0, getMostPopularTest("CS").intValue());
 
         // make 1 more popular by putting a student there
         assertEquals(OK, studentAttendTest(1, 1, 1));
         //assertEquals(1, getMostPopularTest("CS").intValue());
         // make sure that is is not changed in EE
-        //todo:assertEquals(2, getMostPopularTest("EE").intValue());
+        assertEquals(0, getMostPopularTest("EE").intValue());
 
         // make 2 more popular in CS by adding 1 student to it
         assertEquals(OK, studentAttendTest(1, 2, 1));
