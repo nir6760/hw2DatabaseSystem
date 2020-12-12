@@ -1,5 +1,6 @@
 package HW2;
 
+import HW2.AbstractTest;
 import HW2.business.*;
 
 import java.util.ArrayList;
@@ -12,7 +13,7 @@ import static org.junit.Assert.*;
 
 // TODO: check for connection error returns a ERROR value.
 
-public class CRUDTests extends AbstractTest {
+public class HW2_TESTS_05 extends AbstractTest {
 
     @org.junit.Test
     public void testAddTest() {
@@ -100,7 +101,7 @@ public class CRUDTests extends AbstractTest {
         assertEquals(rv, OK);
         // should return BAD_PARAMS - not good
         rv = addStudent(createStudent(10, 11, "bad", "TONTO"));
-       // assertEquals(rv, BAD_PARAMS); //should not be tested by piazza question @75
+        //assertEquals(rv, BAD_PARAMS);
         assertEquals(addStudent(createStudent(10, -1, "bonzo", "EE")), BAD_PARAMS);
         assertEquals(addStudent(createStudent(1, -1, "bonzo", "EE")), BAD_PARAMS);
         assertEquals(addStudent(createStudent(20, 1, null, "EE")), BAD_PARAMS);

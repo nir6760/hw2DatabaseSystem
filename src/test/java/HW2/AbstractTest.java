@@ -11,13 +11,14 @@ public class AbstractTest {
     @BeforeClass
     public static void createTables()
     {
+        Solution.dropTables();
         Solution.createTables();
     }
 
     @AfterClass
     public static void dropTables()
     {
-        Solution.dropTables();
+//        Solution.dropTables();
     }
 
     @Before

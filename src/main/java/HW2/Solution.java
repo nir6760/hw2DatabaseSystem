@@ -33,14 +33,14 @@ public class Solution {
     static final String T_TAKE_TEST = "TakeTest";
     static final String T_OVERSEE = "Oversee";
 
+    static final String V_SUPERVISOR_LEFT_JOIN_OVERSEE = "ViewSupervisorOversee";
     static final String V_TAKETEST_JOIN_TEST = "ViewTakeTestTest";
-    static final String V_SUPERVISOR_LEFT_JOIN_OVERSEE = "ViewOverseeSupervisor";
     static final String V_STUDENT_JOIN_V2 = "ViewStudentV2";
     static final String V_STUDENT_JOIN_TAKETEST = "ViewStudentTakeTest";
     static final String V_TAKE_TOGETHER = "ViewTakeTogether";
 
     static final String[] tables = {T_STUDENT, T_TEST, T_SUPERVISOR, T_TAKE_TEST, T_OVERSEE};
-    static final String[] views = { V_SUPERVISOR_LEFT_JOIN_OVERSEE , V_TAKETEST_JOIN_TEST,  V_STUDENT_JOIN_V2 ,V_STUDENT_JOIN_TAKETEST, V_TAKE_TOGETHER};
+    static final String[] views = { V_SUPERVISOR_LEFT_JOIN_OVERSEE, V_TAKETEST_JOIN_TEST,   V_STUDENT_JOIN_V2 ,V_STUDENT_JOIN_TAKETEST, V_TAKE_TOGETHER};
     /************************************************************/
 
     /*****************************************************************************************************************/
@@ -182,6 +182,8 @@ public class Solution {
         PreparedStatement pstmt = null;
         try{
             switch (view){
+
+
                 case V_SUPERVISOR_LEFT_JOIN_OVERSEE: {
                     pstmt = connection.prepareStatement(
                             "CREATE VIEW " + view + " AS\n"
@@ -352,8 +354,8 @@ public class Solution {
         //clear your tables here
         Connection connection = DBConnector.getConnection();
         PreparedStatement pstmt = null;
-        for (String table : tables) {
-            pstmt = clearTable(table,connection);
+        for (int i=tables.length-1; i>=0 ; i--) {
+            pstmt = clearTable(tables[i],connection);
             try {
                 if (pstmt != null) pstmt.execute();
             } catch (SQLException e) {
@@ -844,7 +846,7 @@ public class Solution {
                     "SELECT EXISTS(SELECT  student_id FROM \n" +
                              T_STUDENT + " stu INNER JOIN CREDITPOINTS cp\n" +
                             "ON stu.faculty = cp.faculty\n" +
-                            "WHERE stu.student_id= ? AND stu.credit_points >= cp.points/2) isExist");
+                            "WHERE stu.student_id= ? AND 2*stu.credit_points >= cp.points) isExist");
             pstmt.setInt(1,studentID);
             rs = pstmt.executeQuery();
             if (rs.next()) {
@@ -892,14 +894,14 @@ public class Solution {
         int course_num = 0;
         try {
             pstmt = connection.prepareStatement(
-                    "SELECT tes.course_number, COUNT(tes.course_number) value_occurrence \n" +
+                    "SELECT view4.course_number, COUNT(view4.course_number) value_occurrence \n" +
                             "FROM \n" +
                             V_STUDENT_JOIN_TAKETEST +"  view4\n" +
-                            "RIGHT OUTER JOIN " +T_TEST + " tes ON view4.course_number = tes.course_number\n" +
-                            "AND view4.semester=tes.semester\n" +
+                            //"RIGHT OUTER JOIN " +T_TEST + " tes ON view4.course_number = tes.course_number\n" +
+                            //"AND view4.semester=tes.semester\n" +
                             "WHERE view4.faculty = ?\n" +
-                            "GROUP BY tes.course_number\n" +
-                            "ORDER BY value_occurrence DESC , tes.course_number DESC\n" +
+                            "GROUP BY view4.course_number\n" +
+                            "ORDER BY value_occurrence DESC , view4.course_number DESC\n" +
                             "LIMIT 1 ");
             pstmt.setString(1,faculty);
             rs = pstmt.executeQuery();

@@ -1,11 +1,14 @@
 package HW2;
 
+import HW2.AbstractTest;
 import HW2.business.*;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
 import java.util.ArrayList;
+
 import static org.junit.Assert.assertEquals;
-import static HW2.TestUtils.*;
 import static HW2.Solution.*;
 import static HW2.business.ReturnValue.*;
 import static org.junit.Assert.*;
@@ -15,7 +18,7 @@ import static org.junit.Assert.*;
 /**
  * initializes the students/tests/observers tables @Before, and tests the basic API section
  */
-public class BasicAPITests1 extends AbstractTest {
+public class HW2_TESTS_02 extends AbstractTest {
 
     /**
      * initializes the tables before every run
@@ -24,17 +27,17 @@ public class BasicAPITests1 extends AbstractTest {
     public void initTables() {
         super.clearTables();
 
-        addTest(createTest(1, 1, 1, 1, 1, 1));
-        addTest(createTest(2, 1, 1, 1, 1, 2));
-        addTest(createTest(1, 2, 1, 1, 1, 2));
+        addTest(TestUtils.createTest(1, 1, 1, 1, 1, 1));
+        addTest(TestUtils.createTest(2, 1, 1, 1, 1, 2));
+        addTest(TestUtils.createTest(1, 2, 1, 1, 1, 2));
 
-        addStudent(createStudent(1, 0, "a", "CS"));
-        addStudent(createStudent(2, 2, "b", "EE"));
-        addStudent(createStudent(3, 4, "c", "MATH"));
+        addStudent(TestUtils.createStudent(1, 0, "a", "CS"));
+        addStudent(TestUtils.createStudent(2, 2, "b", "EE"));
+        addStudent(TestUtils.createStudent(3, 4, "c", "MATH"));
 
-        addSupervisor(createSupervisor(1, "a", 1));
-        addSupervisor(createSupervisor(2, "b", 10));
-        addSupervisor(createSupervisor(3, "c", 100));
+        addSupervisor(TestUtils.createSupervisor(1, "a", 1));
+        addSupervisor(TestUtils.createSupervisor(2, "b", 10));
+        addSupervisor(TestUtils.createSupervisor(3, "c", 100));
     }
 
     @Test
@@ -82,9 +85,9 @@ public class BasicAPITests1 extends AbstractTest {
         assertEquals(supervisorOverseeTest(1, 1, 2), OK);
         assertEquals(supervisorOverseeTest(2, 1, 1), OK);
         // NOT_EXISTS
-        assertEquals(supervisorOverseeTest(4,1, 1), NOT_EXISTS);
-        assertEquals(supervisorOverseeTest(1,2, 2), NOT_EXISTS);
-        assertEquals(supervisorOverseeTest(2,3, 1), NOT_EXISTS);
+        assertEquals(supervisorOverseeTest(4, 1, 1), NOT_EXISTS);
+        assertEquals(supervisorOverseeTest(1, 2, 2), NOT_EXISTS);
+        assertEquals(supervisorOverseeTest(2, 3, 1), NOT_EXISTS);
         // ALREADY_EXISTS
         assertEquals(supervisorOverseeTest(1, 1, 1), ALREADY_EXISTS);
         assertEquals(supervisorOverseeTest(2, 1, 1), ALREADY_EXISTS);
@@ -111,19 +114,16 @@ public class BasicAPITests1 extends AbstractTest {
     @Test
     public void testAverageTestCost() {
         // return a normal average
-        assertEquals(averageTestCost(), 0, eps);
+        Assert.assertEquals(averageTestCost(), 0, TestUtils.eps);
         supervisorOverseeTest(1, 1, 1); // 1
         supervisorOverseeTest(2, 1, 1); // 10
         supervisorOverseeTest(2, 2, 1); // 10
         supervisorOverseeTest(3, 1, 2); // 100
-        //assertEquals(averageTestCost(), 121.0 / 3.0, eps);
-        assertEquals(averageTestCost(), 38.5, eps); ///todo: check avecost
-        addTest(createTest(1, 3));
-        //assertEquals(averageTestCost(), 121.0 / 4.0, eps);
-        assertEquals(averageTestCost(), 28.875, eps); ///todo: check avecost
+        Assert.assertEquals(averageTestCost(), 115.5 / 3.0, TestUtils.eps);
+        addTest(TestUtils.createTest(1, 3));
+        Assert.assertEquals(averageTestCost(), 115.5 / 4.0, TestUtils.eps);
         supervisorStopsOverseeTest(3, 1, 2);
-        //assertEquals(averageTestCost(), 21.0 / 4.0, eps);
-        assertEquals(averageTestCost(), 3.875, eps); ///todo: check avecost
+        Assert.assertEquals(averageTestCost(), 15.5 / 4.0, TestUtils.eps);
         // return 0 in case of 0 div
         // delete all the tests and run again
         assertEquals(supervisorStopsOverseeTest(1, 1, 1), OK);
@@ -133,8 +133,7 @@ public class BasicAPITests1 extends AbstractTest {
         assertEquals(deleteTest(1, 2), OK);
         assertEquals(deleteTest(1, 3), OK);
         assertEquals(deleteTest(2, 1), OK);
-        assertEquals(averageTestCost(), 0, eps);
-
+        Assert.assertEquals(averageTestCost(), 0, TestUtils.eps);
         // return -1 if some other error
         // TODO: test this ^^
     }
@@ -193,12 +192,11 @@ public class BasicAPITests1 extends AbstractTest {
         assertEquals("[3, 1]", supervisorOverseeStudent().toString());
         // check what happens if there are more then 5 students
         for (int i = 5; i <= 10; i++) {
-            assertEquals(OK, addStudent(createStudent(i)));
+            assertEquals(OK, addStudent(TestUtils.createStudent(i)));
             assertEquals(OK, studentAttendTest(i, 1, 1));
             assertEquals(OK, studentAttendTest(i, 2, 1));
         }
-        //assertEquals("[10, 9, 8, 7, 6]", supervisorOverseeStudent().toString());
-        assertEquals("[10, 9, 8, 7, 6, 5, 3, 1]", supervisorOverseeStudent().toString());//todo: check if its ok more than 5
+        assertEquals("[10, 9, 8, 7, 6, 5, 3, 1]", supervisorOverseeStudent().toString());
     }
 
     @Test
@@ -213,7 +211,7 @@ public class BasicAPITests1 extends AbstractTest {
 
         // check what happens when there are many tests
         for (int i = 10; i <= 20; i++) {
-            assertEquals(OK, addTest(createTest(i, 2)));
+            assertEquals(OK, addTest(TestUtils.createTest(i, 2)));
         }
         assertEquals("[20, 19, 18, 17, 16]", testsThisSemester(2).toString());
     }
@@ -223,11 +221,10 @@ public class BasicAPITests1 extends AbstractTest {
         // if a student has >= half of the required credits
         // if there is an error return false
         // CS = 120, EE = 160, MATH = 115
-        /**
-        assertEquals(OK, addTest(createTest(55, 3, 1, 1, 1, 55)));
-        assertEquals(OK, addTest(createTest(10, 3, 1, 1, 1, 10)));
-        assertEquals(OK, addTest(createTest(75, 3, 1, 1, 1, 75)));
-        assertEquals(OK, addTest(createTest(53, 3, 1, 1, 1, 53)));
+        assertEquals(OK, addTest(TestUtils.createTest(55, 3, 1, 1, 1, 55)));
+        assertEquals(OK, addTest(TestUtils.createTest(10, 3, 1, 1, 1, 10)));
+        assertEquals(OK, addTest(TestUtils.createTest(75, 3, 1, 1, 1, 75)));
+        assertEquals(OK, addTest(TestUtils.createTest(53, 3, 1, 1, 1, 53)));
 
         // student 1 from CS has 0 initial credit points
         assertFalse(studentHalfWayThere(1));
@@ -238,10 +235,10 @@ public class BasicAPITests1 extends AbstractTest {
         assertFalse(studentHalfWayThere(1));
         // get to exactly 60 points
         assertEquals(OK, studentAttendTest(1, 55, 3)); // 5 + 55 = 60
-        assertTrue(studentHalfWayThere(1));
+        assertFalse(studentHalfWayThere(1));
         // get to more then 60 points
         assertEquals(OK, studentAttendTest(1, 10, 3));
-        assertTrue(studentHalfWayThere(1));
+        assertFalse(studentHalfWayThere(1));
 
         // student 2 from EE has 2 initial credit points
         assertFalse(studentHalfWayThere(2));
@@ -251,7 +248,7 @@ public class BasicAPITests1 extends AbstractTest {
         assertFalse(studentHalfWayThere(2));
         // get to 81 should return true
         assertEquals(OK, studentAttendTest(2, 1, 2)); // 79 + 2 = 81
-        assertTrue(studentHalfWayThere(2));
+        assertFalse(studentHalfWayThere(2));
         // student 3 from MATH has 4 initial credit points
         assertFalse(studentHalfWayThere(3));
         // get to 57 should not be enough
@@ -259,17 +256,8 @@ public class BasicAPITests1 extends AbstractTest {
         assertFalse(studentHalfWayThere(3));
 
         // add a math student with initial points that are more then half
-        assertEquals(OK, addStudent(createStudent(4, 68, "o", "MATH")));
+        assertEquals(OK, addStudent(TestUtils.createStudent(4, 68, "o", "MATH")));
         assertTrue(studentHalfWayThere(4));
-        **/ //todo: check half way properly used in TEST
-        assertFalse(studentHalfWayThere(1));
-        assertFalse(studentHalfWayThere(2));
-        assertEquals(OK,addStudent(createStudent(10, 60,"shai", "CS")));//CS is 120
-        assertTrue(studentHalfWayThere(10));
-        assertEquals(OK,addStudent(createStudent(11, 90,"shai2", "EE")));//EE is 160
-        assertTrue(studentHalfWayThere(11));
-        assertEquals(OK,addStudent(createStudent(12, 100,"shai3", "CS")));//MATH is 115
-        assertTrue(studentHalfWayThere(12));
     }
 
     @Test
@@ -277,10 +265,10 @@ public class BasicAPITests1 extends AbstractTest {
         // return the number of credit points that a student has(adding all the tests)
         // 0 in any other case
 
-        assertEquals(OK, addTest(createTest(55, 3, 1, 1, 1, 55)));
-        assertEquals(OK, addTest(createTest(10, 3, 1, 1, 1, 10)));
-        assertEquals(OK, addTest(createTest(75, 3, 1, 1, 1, 75)));
-        assertEquals(OK, addTest(createTest(53, 3, 1, 1, 1, 53)));
+        assertEquals(OK, addTest(TestUtils.createTest(55, 3, 1, 1, 1, 55)));
+        assertEquals(OK, addTest(TestUtils.createTest(10, 3, 1, 1, 1, 10)));
+        assertEquals(OK, addTest(TestUtils.createTest(75, 3, 1, 1, 1, 75)));
+        assertEquals(OK, addTest(TestUtils.createTest(53, 3, 1, 1, 1, 53)));
 
         // student 1 from CS has 0 initial credit points
         assertEquals(0, studentCreditPoints(1).intValue());
@@ -311,7 +299,7 @@ public class BasicAPITests1 extends AbstractTest {
         assertEquals(57, studentCreditPoints(3).intValue());
 
         // add a math student with initial points that are more then half
-        assertEquals(OK, addStudent(createStudent(4, 68, "o", "MATH")));
+        assertEquals(OK, addStudent(TestUtils.createStudent(4, 68, "o", "MATH")));
         assertEquals(68, studentCreditPoints(4).intValue());
 
         // a student that does not exist
@@ -325,8 +313,8 @@ public class BasicAPITests1 extends AbstractTest {
         // 0 if there is non or error
 
         // student 1,11 - CS, 2,22 - EE, 3 - MATH
-        assertEquals(OK, addStudent(createStudent(11, 1, "CS", "CS")));
-        assertEquals(OK, addStudent(createStudent(22, 1, "EE", "EE")));
+        assertEquals(OK, addStudent(TestUtils.createStudent(11, 1, "CS", "CS")));
+        assertEquals(OK, addStudent(TestUtils.createStudent(22, 1, "EE", "EE")));
 
         // delete all test and see if we get 0
         assertEquals(OK, deleteTest(1, 1));
@@ -336,14 +324,14 @@ public class BasicAPITests1 extends AbstractTest {
         assertEquals(0, getMostPopularTest("EE").intValue());
 
         // add some tests, make sure it returns the one with the highest id
-        assertEquals(OK, addTest(createTest(1, 1)));
-        assertEquals(OK, addTest(createTest(1, 2)));
-        assertEquals(OK, addTest(createTest(2, 1)));
+        assertEquals(OK, addTest(TestUtils.createTest(1, 1)));
+        assertEquals(OK, addTest(TestUtils.createTest(1, 2)));
+        assertEquals(OK, addTest(TestUtils.createTest(2, 1)));
         assertEquals(0, getMostPopularTest("CS").intValue());
 
         // make 1 more popular by putting a student there
         assertEquals(OK, studentAttendTest(1, 1, 1));
-        //assertEquals(1, getMostPopularTest("CS").intValue());
+        assertEquals(1, getMostPopularTest("CS").intValue());
         // make sure that is is not changed in EE
         assertEquals(0, getMostPopularTest("EE").intValue());
 
@@ -364,83 +352,4 @@ public class BasicAPITests1 extends AbstractTest {
         assertEquals(OK, studentAttendTest(11, 2, 1));
         assertEquals(2, getMostPopularTest("CS").intValue());
     }
-    @Test
-    public void testGetConflictingTests() {
-        //Returns a list containing conflicting tests' IDs.
-        //Tests are conflicting if and only if they happen on the same day, time and semester
-        assertEquals(ReturnValue.OK, Solution.deleteTest(1,1));
-        assertEquals(ReturnValue.OK, Solution.deleteTest(2,1));
-        assertEquals(ReturnValue.OK, Solution.deleteTest(1,2));
-        // add some tests, 10,20  conflict
-        assertTrue(supervisorOverseeStudent().isEmpty());
-        assertEquals(OK, addTest(createTestParam(20, 1,1,1)));
-        assertEquals(OK, addTest(createTestParam(10, 1,1,1)));
-        assertEquals(OK, addTest(createTestParam(10, 2,1,1)));
-        assertEquals(OK, addTest(createTestParam(10, 3,1,1)));
-
-
-        assertEquals("[10, 20]", getConflictingTests().toString());
-        //20 conflicts
-        assertEquals(OK, addTest(createTestParam(30, 1,1,1)));
-        assertEquals(OK, addTest(createTestParam(20, 2,2,2)));
-        assertEquals("[10, 20, 30]", getConflictingTests().toString());
-        //20 not conflicts any more
-        assertEquals(OK, deleteTest(20,1));
-        assertEquals("[10, 30]", getConflictingTests().toString());
-        //no conflicts
-        assertEquals(OK, deleteTest(10,1));
-        assertTrue(supervisorOverseeStudent().isEmpty());
-
-        //remove for test and back
-        addTest(createTest(1, 1, 1, 1, 1, 1));
-        addTest(createTest(2, 1, 1, 1, 1, 2));
-        addTest(createTest(1, 2, 1, 1, 1, 2));
-
-    }
-    @Test
-    public void testGraduateStudents() {
-        //Returns a list of up to 5 students' IDs that graduate after adding the current credit
-        //points to the tests' credit points they are attending.
-
-        assertEquals(OK, addTest(createTest(115, 3, 1, 1, 1, 120)));
-        assertEquals(OK, addTest(createTest(25, 3, 1, 1, 1, 25)));
-        assertEquals(OK, addTest(createTest(155, 3, 1, 1, 1, 155)));
-        assertEquals(OK, addTest(createTest(53, 3, 1, 1, 1, 53)));
-
-        // student 1 from CS has 0 initial credit points
-        assertTrue(graduateStudents().isEmpty());
-        // add 5 points to get 5 total, should not change anything
-        assertEquals(OK, studentAttendTest(1, 1, 1)); // 0 + 1 = 1
-        assertEquals(OK, studentAttendTest(1, 1, 2)); // 1 + 2 = 3
-        assertEquals(OK, studentAttendTest(1, 2, 1)); // 3 + 2 = 5
-        assertTrue(graduateStudents().isEmpty());
-        // get to exactly 120 points
-        assertEquals(OK, studentAttendTest(1, 115, 3)); // 5 + 115 = 120
-        assertEquals("[1]", graduateStudents().toString());
-        // get to more then 60 points
-        assertEquals(OK, studentAttendTest(1, 25, 3));//120+25=145
-        assertEquals("[1]", graduateStudents().toString());
-
-        // student 2 from EE has 2 initial credit points
-
-        // get to 159 should return false
-        assertEquals(OK, studentAttendTest(2, 2, 1)); // 2 + 2 = 4
-        assertEquals(OK, studentAttendTest(2, 155, 3)); // 4 + 155 = 159
-        assertEquals("[1]", graduateStudents().toString());
-        // get to 161 should return true
-        assertEquals(OK, studentAttendTest(2, 1, 2)); // 159 + 2 = 161
-        assertEquals("[1, 2]", graduateStudents().toString());
-        // student 3 from MATH has 4 initial credit points
-
-        // get to 57 should not be enough
-        assertEquals(OK, studentAttendTest(3, 53, 3)); // 4 + 53 = 57 < 57.5
-        assertEquals("[1, 2]", graduateStudents().toString());
-
-        // add a math student with initial points that are graduated
-        assertEquals(OK, addStudent(createStudent(4, 115, "o", "MATH")));
-        assertEquals("[1, 2, 4]", graduateStudents().toString());
-
-
-    }
-
 }
