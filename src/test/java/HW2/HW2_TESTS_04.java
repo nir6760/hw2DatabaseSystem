@@ -441,6 +441,70 @@ public class HW2_TESTS_04 extends AbstractTest {
         res = Solution.getConflictingTests();
         assertEquals(0, res.size());
 
+        Test test411 = new Test(); //test 41 sem1
+        test411.setId(41);
+        test411.setSemester(1);
+        test411.setTime(2);
+        test411.setDay(2);
+        test411.setRoom(1);
+        test411.setCreditPoints(1);
+        Solution.addTest(test411);
+
+        Test test412 = new Test(); //test 41 sem2
+        test412.setId(41);
+        test412.setSemester(2);
+        test412.setTime(2);
+        test412.setDay(2);
+        test412.setRoom(1);
+        test412.setCreditPoints(1);
+        Solution.addTest(test412);
+
+        Test test431 = new Test(); //test 43 sem1
+        test431.setId(43);
+        test431.setSemester(1);
+        test431.setTime(2);
+        test431.setDay(2);
+        test431.setRoom(1);
+        test431.setCreditPoints(1);
+        Solution.addTest(test431);
+
+        Test test442 = new Test(); //test 44 sem2
+        test442.setId(44);
+        test442.setSemester(2);
+        test442.setTime(2);
+        test442.setDay(2);
+        test442.setRoom(1);
+        test442.setCreditPoints(1);
+        Solution.addTest(test442);
+
+        res = Solution.getConflictingTests();
+        assertEquals(4, res.size());
+        assertEquals(41, res.get(0).intValue());
+        assertEquals(41, res.get(1).intValue());
+        assertEquals(43, res.get(2).intValue());
+        assertEquals(44, res.get(3).intValue());
+
+
+    }
+    @org.junit.Test
+    public void getConflictingTests2() {
+        ArrayList<Integer> res;
+        Solution.addTest(TEST1);
+        Solution.addTest(TEST2);
+        Solution.addTest(TEST3);
+
+        res = Solution.getConflictingTests();
+        assertEquals(2, res.size());
+        assertEquals(TEST1.getId(), res.get(0).intValue());
+        assertEquals(TEST2.getId(), res.get(1).intValue());
+
+        Solution.deleteTest(TEST1.getId(), TEST1.getSemester());
+        Solution.deleteTest(TEST2.getId(), TEST2.getSemester());
+        Solution.deleteTest(TEST3.getId(), TEST3.getSemester());
+
+        res = Solution.getConflictingTests();
+        assertEquals(0, res.size());
+
         for (int i = 10; i > 0; i--) {
             Test test = new Test();
             test.setId(i);
@@ -456,12 +520,65 @@ public class HW2_TESTS_04 extends AbstractTest {
             Solution.addTest(test);
         }
         res = Solution.getConflictingTests();
-        assertEquals(10, res.size());
-        for (int i = 0; i < 10; i++) {
-            assertEquals(i + 1, res.get(i).intValue());
-        }
+        assertEquals(48, res.size());
+       // for (int i = 0; i < 10; i++) {
+        //    assertEquals(i + 1, res.get(i).intValue());
+        //}
 
     }
+    @org.junit.Test
+    public void getConflictingTests3() {
+        ArrayList<Integer> res;
+        Solution.addTest(TEST1);
+        Solution.addTest(TEST2);
+        Solution.addTest(TEST3);
+
+        res = Solution.getConflictingTests();
+        assertEquals(2, res.size());
+        assertEquals(TEST1.getId(), res.get(0).intValue());
+        assertEquals(TEST2.getId(), res.get(1).intValue());
+
+        Solution.deleteTest(TEST1.getId(), TEST1.getSemester());
+        Solution.deleteTest(TEST2.getId(), TEST2.getSemester());
+        Solution.deleteTest(TEST3.getId(), TEST3.getSemester());
+
+        res = Solution.getConflictingTests();
+        assertEquals(0, res.size());
+
+        for (int i = 10; i > 0; i--) {
+            Test test = new Test();
+            test.setId(i);
+            test.setTime(1);
+            test.setDay(1);
+            test.setRoom(1);
+            test.setCreditPoints(1);
+            test.setSemester(1);
+            // just for diversity
+            if (i > 7) {
+                test.setSemester(2);
+            }
+            Solution.addTest(test);
+        }
+        res = Solution.getConflictingTests();
+        //assertEquals(10, res.size());
+        //for (int i = 0; i < 10; i++) {
+        //    assertEquals(i + 1, res.get(i).intValue());
+        //}
+        assertEquals(48, res.size());
+        assertEquals(res.toString(),
+                "[1, 1, 1, 1, 1, 1," +
+                        " 2, 2, 2, 2, 2, 2," +
+                        " 3, 3, 3, 3, 3, 3," +
+                        " 4, 4, 4, 4, 4, 4," +
+                        " 5, 5, 5, 5, 5, 5," +
+                        " 6, 6, 6, 6, 6, 6," +
+                        " 7, 7, 7, 7, 7, 7," +
+                        " 8, 8," +
+                        " 9, 9," +
+                        " 10, 10]");
+
+    }
+
 
     @org.junit.Test
     public void graduateStudentsA() {

@@ -63,15 +63,21 @@ public class Solution {
     private static ReturnValue typeOfErrorForInsert(int type_error) {
         if (type_error == NOT_NULL_VIOLATION || type_error == CHECK_VIOLATION)
             return BAD_PARAMS;
-        else if (type_error == UNIQUE_VIOLATION)
-            return ALREADY_EXISTS;
         else if (type_error == FOREIGN_KEY_VIOLATION)
             return NOT_EXISTS;
+        else if (type_error == UNIQUE_VIOLATION)
+            return ALREADY_EXISTS;
+
+
+        //else if (type_error != NOT_NULL_VIOLATION && type_error != CHECK_VIOLATION)
+        //    return ERROR;
+
+
         return ERROR;
     }
 
 
-    /**Auxiliary functins for basic DataBase functions **/
+    /**Auxiliary functions for basic DataBase functions **/
     //auxiliary create table function
     private static PreparedStatement createTable(String table, Connection connection){
         PreparedStatement pstmt = null;
@@ -332,7 +338,7 @@ public class Solution {
                 e.printStackTrace();
                 connectionEpilog(connection,pstmt); //if we cant excute end connection and return
                 return;
-            } ///todo: check catch
+            }
 
         }
         for(String view: views){
@@ -343,7 +349,7 @@ public class Solution {
                 e.printStackTrace();
                 connectionEpilog(connection,pstmt); //if we cant excute end connection and return
                 return;
-            } ///todo: check catch
+            }
         }
         connectionEpilog(connection,pstmt); //with finally for each iteration?
 
@@ -362,9 +368,9 @@ public class Solution {
                 e.printStackTrace();
                 connectionEpilog(connection,pstmt); //if we cant excute end connection and return
                 return;
-            } ///todo: check catch
+            }
 
-        }//todo: chck if need to clear views
+        }
         connectionEpilog(connection,pstmt); //with finally for each iteration?
 
     }
@@ -383,7 +389,7 @@ public class Solution {
                 e.printStackTrace();
                 connectionEpilog(connection,pstmt); //if we cant excute end connection and return
                 return;
-            } ///todo: check catch
+            }
 
         }
 
@@ -395,7 +401,7 @@ public class Solution {
                 e.printStackTrace();
                 connectionEpilog(connection,pstmt); //if we cant excute end connection and return
                 return;
-            } ///todo: check catch
+            }
 
         }
         connectionEpilog(connection,pstmt); //with finally for each iteration?
@@ -930,14 +936,10 @@ public class Solution {
         try {
             pstmt = connection.prepareStatement(
                     "SELECT tes1.course_number FROM\n" +
-                            T_TEST + " tes1 INNER JOIN\n" +
-                            "(SELECT semester,time,day, COUNT(*) count_times\n" +
-                            "FROM " + T_TEST +"\n" +
-                            "GROUP BY semester,time,day\n" +
-                            "HAVING COUNT(*) >= 2) tes2\n" +
+                            T_TEST + " tes1 INNER JOIN " + T_TEST + " tes2\n" +
                             "ON \n" +
                             "tes1.semester=tes2.semester AND tes1.time=tes2.time AND\n" +
-                            "tes1.day=tes2.day\n" +
+                            "tes1.day=tes2.day AND tes1.course_number!=tes2.course_number\n" +
                             "ORDER BY tes1.course_number ASC ");
             rs = pstmt.executeQuery();
             while (rs.next()) {
